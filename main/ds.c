@@ -1225,7 +1225,8 @@ void ds_task(void *arg)
 			DS18 *d = &ds[i];
 			if (!d->is_connected) continue;
 			ds_getTempC(d);
-			if (DS_ALARM == d->type && d->Ce > d->talert) {
+			//if (DS_ALARM == d->type && d->Ce > d->talert) {
+			if (d->Ce > d->talert) { // check
 				// Alarm mode
 				AlarmMode |= ALARM_TEMP;
 				if (!(SavedAlarmMode|ALARM_TEMP)) {

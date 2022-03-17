@@ -256,16 +256,49 @@ static int PZEM_command(uint8_t cmd, uint8_t data, uint8_t resp, uint8_t *result
 
 static int PZEMv30_recieve(uint8_t *resp, uint16_t size)
 {
+#define PZEM_ERR_MSG_LEN 5
 	int len, i, readed = 0;
+/*
+ * Правильный ответ[5 байт + 2*(кол-во читаемых регистров)]:
+ * + адрес ведомого
+ * + 0x04(cmd READ)
+ * + количество байтов
+ * + старший байт данных регистра 1 + младший байт данных регистра 1
+ * +…
+ * + CRC старшего байта
+ * + CRC младшего байта
+ *
+ *  Ответ об ошибке [5 байт]:
+ *  +адрес ведомого
+ *  + 0x84
+ *  + код ошибки
+ *  + старший байт CRC
+ *  + младший байт CRC
+
+Коды ошибок:
+    0x01, недопустимая функция
+    0x02, недопустимый адрес
+    0x03, недопустимые данные
+    0x04  ошибка ведомого
+ */
 
 	for (i = 0; i < 2; i++) {
-		len = uart_read_bytes(UART_NUM_1, &resp[readed], size-readed,
-			PZEM_DEFAULT_READ_TIMEOUT / portTICK_RATE_MS);
-	        readed += len;
+		len = uart_read_bytes(UART_NUM_1, &resp[readed], size-readed,PZEM_DEFAULT_READ_TIMEOUT / portTICK_RATE_MS);
+		if (len<0) {
+			ESP_LOGE(__func__,"UART error");
+			return 0; // UART error
+		}
+		if ((len+readed)==PZEM_ERR_MSG_LEN) {
+			ESP_LOGE(__func__,"PZEM error:%d",resp[2]);
+			return 0;
+		}
+	    readed += len;
 		if (readed < size) continue;
-
 		// Check CRC with the number of bytes read
-		if (!PZEM_checkCRC16(resp, readed)) return 0;
+		if (!PZEM_checkCRC16(resp, readed)) {
+			ESP_LOGE(__func__,"CRC error");
+			return 0;
+		}
 	}
 	return readed;
 }
@@ -447,12 +480,7 @@ bool PZEMv30_updateValues(void)
 
 	// Read 10 registers starting at 0x00 (no check)
 	PZEMv30_sendCmd8(CMD_RIR, 0x00, 0x0A, false);
-
-
-	if (PZEMv30_recieve(response, 25) != 25) {
-		// Something went wrong
-		return false;
-	}
+    int resp_len = PZEMv30_recieve(response, 25);
 
 	PZEMv3_Values.voltage = NAN;
 	PZEMv3_Values.current = NAN;
@@ -461,6 +489,9 @@ bool PZEMv30_updateValues(void)
 	PZEMv3_Values.frequeny = NAN;
 	PZEMv3_Values.pf = NAN;
 
+	if (resp_len!=25) {		// Something went wrong
+		return false;
+	}
 	// Update the current values
 	PZEMv3_Values.voltage = ((uint32_t)response[3] << 8 | // Raw voltage in 0.1V
                               (uint32_t)response[4])/10.0;

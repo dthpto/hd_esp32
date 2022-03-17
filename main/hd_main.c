@@ -64,7 +64,7 @@ License (MIT license):
 #include "cgiupdate.h"
 #include "cgiwebsocket.h"
 #include "esp_request.h"
-
+#include "debug.h"
 
 
 //#define GPIO_INPUT_PIN_SEL  (1<<GPIO_DETECT_ZERO) 
@@ -77,6 +77,9 @@ volatile int32_t Hpoint = HMAX;
 #define TIMER_FINE_ADJ   (0*(TIMER_BASE_CLK / TIMER_DIVIDER)/1000000) /*!< used to compensate alarm value */ 
 #define TIMER_INTERVAL_SEC   (0.001)   /*!< test interval for timer */ 
 
+#define EXISTS_ALARM(A)  (AlarmMode & (A))
+#define CLEAR_ALARM(A)  do {if (EXISTS_ALARM(A)) {AlarmMode &= ~(A);}} while(0)
+#define SET_ALARM(A)  do {AlarmMode |= (A);} while(0)
 
 char *Hostname;		// Имя хоста
 char *httpUser;		// Имя пользователя для http
@@ -160,13 +163,14 @@ static volatile int beeperTime=0;
 static volatile bool beepActive = false;
 
 // Включаем бипер
-void myBeep(bool lng)
+void IRAM_ATTR myBeep(bool lng)
 {
 	if (beepActive) return;
+
 	if (lng) beeperTime = 1000;	
 	else beeperTime = 500;
 	beepActive = true;
-	gpio_set_level(GPIO_BEEP, 1);	
+	GPIO_ON(GPIO_BEEP);
 }
 
 void shortBeep(void)
@@ -174,7 +178,7 @@ void shortBeep(void)
 	if (beepActive) return;
 	beeperTime = 150;
 	beepActive = true;
-	gpio_set_level(GPIO_BEEP, 1);
+	GPIO_ON(GPIO_BEEP);
 }
 
 double roundX (double x, int precision)
@@ -190,6 +194,7 @@ double roundX (double x, int precision)
 }
 
 extern uint8_t PZEM_Version;	// Device version 3.0 in use ?
+bool is_diffOffCondition(void);
 
 void diffOffTask(void *arg){
 	openKlp(klp_diff);
@@ -199,9 +204,10 @@ void diffOffTask(void *arg){
 }
 
 bool is_diffOffCondition(void){
-	return (	((AlarmMode & ALARM_OVER_POWER)&&(getIntParam(DEFL_PARAMS, "alarmDIFFoffP")))
+	return ( (EXISTS_ALARM(ALARM_OVER_POWER) && getIntParam(DEFL_PARAMS, "alarmDIFFoffP") )
 			   ||
-			        ((AlarmMode & ALARM_TEMP)&&(getIntParam(DEFL_PARAMS, "alarmDIFFoffT"))));
+			        (EXISTS_ALARM(ALARM_TEMP) && getIntParam(DEFL_PARAMS, "alarmDIFFoffT") )
+				);
 }
 
 void alarmControlTask(void *arg){
@@ -212,8 +218,8 @@ void alarmControlTask(void *arg){
 		if  ( is_diffOffCondition() )	{
 			vDIFFoffDelaySec = getIntParam(DEFL_PARAMS, "DIFFoffDelay");
 			ESP_LOGE(__func__,"start DIFF-OFF proc. Delay (%d sec)",vDIFFoffDelaySec);
-			if (AlarmMode & ALARM_OVER_POWER)	 	ESP_LOGE(__func__,"			overPower");
-			if (AlarmMode & ALARM_TEMP) 					ESP_LOGE(__func__,"			overTemerature");
+			if (EXISTS_ALARM(ALARM_OVER_POWER))	 	ESP_LOGE(__func__,"			overPower");
+			if (EXISTS_ALARM(ALARM_TEMP)) 					ESP_LOGE(__func__,"			overTemerature");
 
 			vDIFFoffTime = xTaskGetTickCount () + SEC_TO_TICKS(vDIFFoffDelaySec);
 			while (xTaskGetTickCount ()<vDIFFoffTime) {// задержка выключения диф-автомата
@@ -232,99 +238,183 @@ void alarmControlTask(void *arg){
 	vTaskDelete(NULL);
 }
 
+error_t readPZEM(int16_t* currV,int16_t* currP){
+	// --------reading PZEM-----------
+	if (PZEM_Version)  {
+		if (!PZEMv30_updateValues()){
+			*currV = -1;
+			*currP = -1;
+			return ESP_FAIL;
+		}
+	}
+	*currV = PZEM_voltage();
+	*currP = PZEM_power();
+	if ((*currV<0) || (*currP<0)) {
+		*currV = -1;
+		*currP = -1;
+		return ESP_FAIL;
+	}
+	return ESP_OK;
+}
+
+typedef struct {
+	int16_t ticks;
+	int16_t powerPrc;
+} powerTable_t;
+
+const powerTable_t pwrAngle[] = {
+	{0,100},
+	{150,98},
+	{207,95},
+	{265,90},
+	{345,80},
+	{461,60},
+	{564,40},
+	{680,20},
+	{760,10},
+	{817,5},
+	{874, 2},
+	{1024, 0}
+};
+
+#define ARR_SIZE (sizeof(pwrAngle)/sizeof(powerTable_t))
+
+int powerPrcByHpoint(int hp){
+	if (hp>=HMAX) return 0;
+	if (hp<=0) return 100;
+	int i;
+	for (i=0;i<ARR_SIZE;i++)	if (hp<=pwrAngle[i].ticks) break;
+	if (hp==pwrAngle[i].ticks) return pwrAngle[i].powerPrc;
+
+	int tmp = (pwrAngle[i-1].powerPrc - pwrAngle[i].powerPrc);
+	tmp = ((pwrAngle[i].ticks - pwrAngle[i-1].ticks)+tmp/2)/tmp;
+	return (pwrAngle[i-1].powerPrc - ((hp - pwrAngle[i-1].ticks)+tmp/2)/tmp);
+}
+
+int hpointByPowerPrc(int prc){
+	if (prc>=100) return 0;
+	if (prc<=0) return HMAX;
+	int i;
+	for (i=0;i<ARR_SIZE;i++)	if (prc >= pwrAngle[i].powerPrc) break;
+	if (prc==pwrAngle[i].powerPrc) return pwrAngle[i].ticks;
+
+	int tmp = (pwrAngle[i-1].powerPrc - pwrAngle[i].powerPrc);
+	tmp = ((pwrAngle[i].ticks - pwrAngle[i-1].ticks)+tmp/2)/tmp;
+	return (pwrAngle[i].ticks - tmp*(prc - pwrAngle[i].powerPrc));
+}
+
 void pzem_task(void *arg)
 {
-	int16_t maxPower;
 	TickType_t overPowerAlarmTime;
 	bool  flag_overPower=0;
-	float v;
-	int cnt =0;
-
+	bool  succ_flag;
 
 	PZEM_init();
-	maxPower = getIntParam(DEFL_PARAMS, "maxPower");
+
+	vTaskDelay(1000/portTICK_PERIOD_MS);
 
 	while(1) {
-
-		if (PZEM_Version)  PZEMv30_updateValues();
-
-		v = PZEM_voltage();
-		if (-1 == v) CurVolts = 0;
-		else CurVolts = v;
-		v = PZEM_power();
-		if (-1 == v) CurPower = 0;
-		else CurPower = v;
-		if (CurVolts<10) AlarmMode |= ALARM_FREQ;
-		else AlarmMode &= ~(ALARM_FREQ);
-
-		if (AlarmMode & ~(ALARM_FREQ|ALARM_NOLOAD)) {
-			// При аварии выключаем нагрев
-			myBeep(false);
-			setPower(0);
+		vTaskDelay(1200/portTICK_PERIOD_MS);
+		// --------reading PZEM-----------
+		succ_flag = (readPZEM(&CurVolts,&CurPower) == ESP_OK);
+		//=========ALARMS CHECKS========
+		//---- PZEM connection--------
+		if (!succ_flag) { // no connection to PZEM, alarm!
+			SET_ALARM(ALARM_NO_PWR_CONTROL);
 		}
-
-		if (SetPower) {
-			if (MainMode == MODE_IDLE) setPower(0);	// В режиме монитора выключаем нагрев
-			if (PROC_END == MainStatus) setPower(0); // Режим окончания работы - отключение нагрузки
-		}
-
-		if (CurPower<5 && Hpoint<=TRIAC_GATE_MAX_CYCLES && SetPower > 0) {
-			// Отслеживание отключенной нагрузки
-			cnt ++;
-			if (cnt>10) AlarmMode |= ALARM_NOLOAD;
-		} else {
-			cnt = 0;
-			AlarmMode &= ~(ALARM_NOLOAD);
-		}
-
-		//контроль пробития триака
-		if (((CurPower- SetPower)*100L/maxPower)>DELTA_TRIAK_ALARM_PRC){ // лимиты тревоги превышены
-			myBeep(true);
-			if (!flag_overPower){  // первое детектирование
-				overPowerAlarmTime = xTaskGetTickCount () + SEC_TO_TICKS(TRIAK_ALARM_DELAY_SEC);// фиксируем время включения аларма (в тиках)
-				flag_overPower = true;
+		else
+		{
+			CLEAR_ALARM(ALARM_NO_PWR_CONTROL);
+			//-------------- low voltage 220V----------
+			if (CurVolts<10)
+				SET_ALARM(ALARM_FREQ);
+			else
+				CLEAR_ALARM(ALARM_FREQ);
+			//-------------- no payload ----------
+			if ((SetPower > 0) && (CurPower<5)  &&	 (Hpoint<=TRIAC_GATE_MAX_CYCLES) ) {
+				SET_ALARM(ALARM_NOLOAD);
+			} else {
+				CLEAR_ALARM(ALARM_NOLOAD);
 			}
-			else {
-				if (xTaskGetTickCount () > overPowerAlarmTime){
-					AlarmMode |= ALARM_OVER_POWER;
+
+			//-------------- triac breakdown to a short circuit ----------
+			if (((CurPower- SetPower)*100L/getIntParam(DEFL_PARAMS, "maxPower"))>DELTA_TRIAK_ALARM_PRC){
+				myBeep(true);
+				if (!flag_overPower){  // first detection
+					overPowerAlarmTime = xTaskGetTickCount () + SEC_TO_TICKS(TRIAK_ALARM_DELAY_SEC);// memorize event time (by ticks)
+					flag_overPower = true;
+				}
+				else {
+					if (xTaskGetTickCount () > overPowerAlarmTime){
+						SET_ALARM(ALARM_OVER_POWER);
+					}
 				}
 			}
-		}
-		else { //превышения мощности нет, сбрасываем флаги и бит аларма
-			flag_overPower = false;
-			AlarmMode &= ~ALARM_OVER_POWER;
-		}
-
-
-		if (SetPower <= 0) {
-			Hpoint = HMAX;
-		} else {
-			// Проверка рассинхронизации мощности
-			int delta = abs(SetPower - CurPower);
-//			int p5 = SetPower/20;
-			char inc = SetPower > CurPower;
-
-			if (delta > 200 ) {
-				if (inc) Hpoint -= 50; 
-				else Hpoint += 50;
-			} else if (delta > 50) {
-				if (inc) Hpoint -= 10; 
-				else Hpoint += 10;
-			} else  if (delta > 10) {
-				if (inc) Hpoint -=2; 
-				else Hpoint +=2;
-			} else if (delta >= 5) {
-				if (inc) Hpoint --; 
-				else Hpoint ++;
+			else {
+				flag_overPower = false;
+				CLEAR_ALARM(ALARM_OVER_POWER);
 			}
 		}
-		if (SetPower > 0 && Hpoint >= (HMAX - TRIAC_GATE_MAX_CYCLES) ) {
-			Hpoint = HMAX - 1 - TRIAC_GATE_MAX_CYCLES;
-		}
-		if (Hpoint<TRIAC_GATE_MAX_CYCLES) Hpoint=TRIAC_GATE_MAX_CYCLES;
 
-		vTaskDelay(1000/portTICK_PERIOD_MS);
-	}
+		if (EXISTS_ALARM(ALARM_FREQ | ALARM_NOLOAD | ALARM_NO_PWR_CONTROL)){
+			myBeep(false);
+		}
+
+		//======
+		if (SetPower) {
+			if (MainMode == MODE_IDLE) setPower(0);	// turn off if Monitor Mode
+			if (PROC_END == MainStatus) setPower(0); // turn off on EndProc stage
+		}
+
+		//======
+		if ((SetPower <= 0) || EXISTS_ALARM(ALARM_FREQ | ALARM_NOLOAD | ALARM_NO_PWR_CONTROL)) {
+			//DBG("SetPower:%d  Alarm:%d",SetPower, AlarmMode);
+			Hpoint = HMAX;
+			continue;
+		}
+
+		// =============Power control=============
+		int errP = CurPower-SetPower;
+		int errPercent = abs((errP*100 + SetPower/2)/SetPower);
+
+		if ((errP==0)||(errPercent==0)) { // precision is 1%
+			//DBG("STABLE cur:%d(%d) errPrc:%d Hpoint:%d",CurPower,SetPower,errPercent,Hpoint);
+			continue;
+		}
+		int voltagePower = powerPrcByHpoint(Hpoint);
+		int increment=0,calcPowerPrc=0;
+		if ((CurPower==0) || (voltagePower==0))
+		{
+			Hpoint = hpointByPowerPrc(powerPrcByHpoint(Hpoint)+5);
+		}
+		else	{ // CurPower>0
+			//--- number real watts on one percent of the voltage power
+			double WattsOn1PrcVoltagePwr =(double)(CurPower)/(double)(voltagePower);
+			//DBG("WattsOn1PrcVoltagePwr:%4.1f",WattsOn1PrcVoltagePwr);
+			int calcHpoint;
+
+			if (errPercent>50){
+				calcPowerPrc=(int)(0.5 + SetPower/WattsOn1PrcVoltagePwr);
+			}
+			else {
+				calcPowerPrc = voltagePower + (int)(0.5 + errP/WattsOn1PrcVoltagePwr);
+			}
+			calcHpoint=hpointByPowerPrc(calcPowerPrc);
+			increment = abs(Hpoint-calcHpoint);
+			if (increment>1) 	increment = (increment +1)/2;
+			if (!increment) increment=1;
+			if (errP<0) increment=-abs(increment);
+
+			Hpoint += increment;
+			if (Hpoint >= MAX_HPOINT_VALUE ) {
+				Hpoint = MAX_HPOINT_VALUE;
+			}
+			if (Hpoint<TRIAC_GATE_MAX_CYCLES) {
+				Hpoint=TRIAC_GATE_MAX_CYCLES;
+			}
+			//DBG("===set:%d cur:%d hp:%d inc:%d",SetPower, CurPower, Hpoint, increment);
+		}// triac angle correction, as CurPower>0
+	}//while(1)
 }
 
 
@@ -391,29 +481,33 @@ const char *getAlarmModeStr(void)
 	if (!AlarmMode) return "<b class=\"green\">Не зафиксированo</b>";
 	strcpy(str, "<b class=\"red\">");
 
-	if (AlarmMode & ALARM_TEMP) {
+	if (EXISTS_ALARM(ALARM_TEMP)) {
 		cnt = sizeof(str) - strlen(str);
 		strncat(str, "Превышение температуры", cnt);
 	}
-	if (AlarmMode & ALARM_WATER) {
+	if (EXISTS_ALARM(ALARM_WATER)) {
 		cnt = sizeof(str) - strlen(str);
 		strncat(str, " Нет охлаждения", cnt);
 	}
-	if (AlarmMode & ALARM_FREQ) {
+	if (EXISTS_ALARM(ALARM_FREQ)) {
 		cnt = sizeof(str) - strlen(str);
-		strncat(str, "Нет напряжение сети", cnt);
+		strncat(str, "Нет сети", cnt);
 	}
-	if (AlarmMode & ALARM_NOLOAD) {
+	if (EXISTS_ALARM(ALARM_NOLOAD)) {
 		cnt = sizeof(str) - strlen(str);
 		strncat(str,"  Нет нагрузки", cnt);
 	}
-	if (AlarmMode & ALARM_EXT) {
+	if (EXISTS_ALARM(ALARM_EXT)) {
 		cnt = sizeof(str) - strlen(str);
-		strncat(str,"  Сработал аварийный датчик", cnt);
+		strncat(str,"  аварийный датчик", cnt);
 	}
-	if (AlarmMode & ALARM_OVER_POWER) {
+	if (EXISTS_ALARM(ALARM_OVER_POWER)) {
 		cnt = sizeof(str) - strlen(str);
 		strncat(str,"  ВЫСОКАЯ МОЩНОСТЬ !", cnt);
+	}
+	if (EXISTS_ALARM(ALARM_NO_PWR_CONTROL)) {
+		cnt = sizeof(str) - strlen(str);
+		strncat(str,"  Ошибка PZEM!", cnt);
 	}
 	strcat(str,"</b>");
 	return str;
@@ -498,7 +592,8 @@ void IRAM_ATTR timer0_group0_isr(void *para)
 			if (beeperTime <= 0) {
 				beeperTime = 0;
 				beepActive = false;
-				GPIO.out_w1tc = (1 << GPIO_BEEP);
+				GPIO_OFF(GPIO_BEEP);
+				//GPIO.out_w1tc = (1 << GPIO_BEEP);
 			}
 		}	
 
@@ -568,13 +663,13 @@ void IRAM_ATTR gpio_isr_handler(void* arg)
 { 
 	uint32_t intr_st = GPIO.status;
 	if (intr_st & (1 << GPIO_DETECT_ZERO)) {
-//                for (int i = 0; i < 100; ++i) {}	// delay
+
 		if (!(GPIO.in & (1 << GPIO_DETECT_ZERO))) {
 			// Zero the PWM timer at the zero crossing.
 			LEDC.timer_group[0].timer[0].conf.rst = 1;
 			LEDC.timer_group[0].timer[0].conf.rst = 0;
 		
-			if (Hpoint >= HMAX - TRIAC_GATE_MAX_CYCLES) { 
+			if (Hpoint >= HMAX - TRIAC_GATE_MAX_CYCLES) {
 				// If hpoint if very close to the maximum value, ie mostly off, simply turn off 
 				// the output to avoid glitch where hpoint exceeds duty. 
 				LEDC.channel_group[0].channel[0].conf0.sig_out_en = 0; 
@@ -583,7 +678,6 @@ void IRAM_ATTR gpio_isr_handler(void* arg)
 				LEDC.channel_group[0].channel[0].conf0.sig_out_en = 1; 
 				LEDC.channel_group[0].channel[0].conf1.duty_start = 1; 
 			} 
-
 			gpio_counter++;
 		}
 	} else if (intr_st & (1 << GPIO_ALARM)) {
@@ -865,7 +959,7 @@ void setMainMode(int nm)
 		// Режим регулятора мощности
 		ESP_LOGI(TAG, "Main mode: Power reg.");
 		setNewMainStatus(PROC_START);
-		setPower(getIntParam(DEFL_PARAMS, "ustPowerReg"));
+		//setPower(getIntParam(DEFL_PARAMS, "ustPowerReg"));
 		break;
 	case MODE_DISTIL:
 		// Режим дистилляции
@@ -883,6 +977,7 @@ void setMainMode(int nm)
 		setNewMainStatus(START_WAIT);
 		break;
 	}
+	DBG("4");
 	myBeep(false);
 }
 
@@ -1021,7 +1116,10 @@ void setStatus(int next)
 	default:
 		break;
 	}
-	if (getIntParam(DEFL_PARAMS, "beepChangeState")) myBeep(false);
+	if (getIntParam(DEFL_PARAMS, "beepChangeState")) {
+		DBG("5");
+		myBeep(false);
+	}
 }
 
 /*
@@ -1482,7 +1580,7 @@ void openKlp(int i)
 /*
  * Закрытие клапана с выключением программного ШИМ
  */
-void closeKlp(int i)
+inline void closeKlp(int i)
 {
 	cmd2valve (i, cmd_close);
 	Klp[i].is_pwm = false;
@@ -1769,7 +1867,7 @@ void app_main(void)
 	hd_display_init();
 
 	/* Настройка PZEM */
-	xTaskCreate(&pzem_task, "pzem_task", 2048, NULL, 1, NULL);
+	xTaskCreate(&pzem_task, "pzem_task", 2048*4, NULL, 1, NULL);
 
 	ledc_timer_config_t ledc_timer = {
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 0, 0)
@@ -1777,7 +1875,7 @@ void app_main(void)
 #else
 		.bit_num = LEDC_TIMER_10_BIT,
 #endif
-		.freq_hz = LED_HZ*2,
+		.freq_hz = TRIAC_CONTROL_LED_FREQ_HZ * 2,
 		.speed_mode = LEDC_HIGH_SPEED_MODE,
 		.timer_num = LEDC_TIMER_0
 	};
@@ -1789,14 +1887,27 @@ void app_main(void)
             .channel = 0,
             .timer_sel = LEDC_TIMER_0,
             .duty = (1 << LEDC_TIMER_10_BIT) - 1,
-            .intr_type = LEDC_INTR_DISABLE,
+            .intr_type = LEDC_INTR_DISABLE
 	};
 	ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
 
 	LEDC.channel_group[0].channel[0].duty.duty = TRIAC_GATE_IMPULSE_CYCLES << 4;
         // Initial brightness of 0, meaning turn TRIAC on at very end:
-        LEDC.channel_group[0].channel[0].conf0.sig_out_en = 1;
-	LEDC.channel_group[0].channel[0].conf1.duty_start = 1;
+    LEDC.channel_group[0].channel[0].conf0.sig_out_en = 0;
+	LEDC.channel_group[0].channel[0].conf1.duty_start = 0;
+
+	// LEDC timer for valves
+	ledc_timer_config_t ledc_timer1 = {
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 0, 0)
+		.duty_resolution = LEDC_TIMER_10_BIT,
+#else
+		.bit_num = LEDC_TIMER_10_BIT,
+#endif
+		.freq_hz = VALVES_CONTROL_LED_FREQ_HZ,
+		.speed_mode = LEDC_HIGH_SPEED_MODE,
+		.timer_num = LEDC_TIMER_1
+	};
+	ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer1));
 
 	// Настройка клапанов управления
 	for (int i=0; i<MAX_KLP; i++) {
@@ -1804,7 +1915,7 @@ void app_main(void)
 			.gpio_num = klp_gpio[i],
 			.speed_mode = LEDC_HIGH_SPEED_MODE,
 			.channel = i+1,
-			.timer_sel = LEDC_TIMER_0,
+			.timer_sel = LEDC_TIMER_1,
 			.duty = 0,
 			.intr_type = LEDC_INTR_DISABLE,
 		};

@@ -45,7 +45,8 @@ typedef enum {
 	ALARM_FREQ  =0x8, 		// Авария: отсутствие напряжения сети
 	ALARM_NOLOAD=0x10,		// Авария: отсутствие подключения нагрузки
 	ALARM_EXT   =0x20, 		// Авария от внешнего источника
-	ALARM_OVER_POWER= 0x40 // Авария: мощность превышает заданную
+	ALARM_OVER_POWER= 0x40, // Авария: мощность превышает заданную
+	ALARM_NO_PWR_CONTROL	= 0x80 // Авария: отказ контроля мощности
 } alarm_mode;
 
 typedef enum {
@@ -91,28 +92,37 @@ extern float TempWaterOut;	// Температура воды на выходе 
 extern int16_t WaterFlow;	// Значения датчика потока воды.
 
 
+//#define NO_BEEP
 
+#ifndef NO_BEEP
+#define GPIO_ON(A)		do {GPIO.out_w1ts = (1 << (A));} while(0)
+#define GPIO_OFF(A)  	do {GPIO.out_w1tc = (1 << (A));} while(0)
+#else
+#define GPIO_ON(A)
+#define GPIO_OFF(A)
+#endif
 
+#define SEC_TO_TICKS(A) ((uint32_t)((A)*1000)/portTICK_PERIOD_MS)
 
-
-#define SEC_TO_TICKS(A) ((uint32_t)(A*1000)/portTICK_PERIOD_MS)
-
-#define TICK_RATE_HZ 100
-#define TICK_PERIOD_MS (1000 / TICK_RATE_HZ)
-#define LED_HZ 50
+#define TRIAC_CONTROL_LED_FREQ_HZ 50
 // TRIAC is kept high for TRIAC_GATE_IMPULSE_CYCLES PWM counts before setting low.
 #define TRIAC_GATE_IMPULSE_CYCLES 10
+
 // TRIAC is always set low at least TRIAC_GATE_QUIESCE_CYCLES PWM counts 
 // before the next zero crossing.
-#define TRIAC_GATE_QUIESCE_CYCLES 10
+
 #define TRIAC_GATE_MAX_CYCLES 55
+#define HMAX (1<<LEDC_TIMER_10_BIT)-1
+#define MAX_HPOINT_VALUE (HMAX - TRIAC_GATE_MAX_CYCLES)
+#define MIN_HPOINT_VALUE 		TRIAC_GATE_MAX_CYCLES
+
+// частота ШИМ клапанов, Гц
+#define VALVES_CONTROL_LED_FREQ_HZ 20000
 
 //задержка выставления тревоги "пробитие триака" от момента начала превышения мощности, в секундах
 #define TRIAK_ALARM_DELAY_SEC	10
 //превышение текущей мощности от установленной, в % от максимальной, при которой триак считается пробитым
 #define DELTA_TRIAK_ALARM_PRC  5
-
-#define HMAX (1<<LEDC_TIMER_10_BIT)-1
 
 #define VALVE_DUTY 1023
 #define VALVE_ON_FADE_TIME_MS 1000

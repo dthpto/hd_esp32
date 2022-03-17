@@ -76,8 +76,8 @@ input.buttons {
         border-spacing: 1px;
         border-collapse: separate;
         padding: 0;
-        margin-left:auto;
-        margin-right:auto;
+/*        margin-left:auto;
+        margin-right:auto;*/
 }
 .param tr {padding: 1px; background-color: #FFFFFF; color: #000;}
 
@@ -357,10 +357,13 @@ showStick = function(level,text) {
 <input class="menu" type="button" value="установить" onclick="setPower(0);" />
 </td></tr>
 <tr><td colspan="2" class="ta_l">
-<input class="menu" type="button" value=" +100 " onclick="setPower(100);" />
-<input class="menu" type="button" value=" +10 " onclick="setPower(10);" />
+<div >
 <input class="menu" type="button" value=" -100 " onclick="setPower(-100);" />
 <input class="menu" type="button" value=" -10 " onclick="setPower(-10);" />
+<input class="menu" type="button" value="   0   " onclick="setPower(0);" />
+<input class="menu" type="button" value=" +10 " onclick="setPower(10);" />
+<input class="menu" type="button" value=" +100 " onclick="setPower(100);" />
+</div>
 </td></tr>
 </tbody>
 <tbody class="temp_sensors"></tbody>
@@ -731,8 +734,10 @@ EndProcess = function() {
 }
 
 setPower = function(delta) {
+ var newPower = eval($('#new_power').val()) + delta;
+ if (newPower<0) newPower=0;
  $.post('/setpower', {
-        'power': eval($('#new_power').val()) + delta,
+        'power': newPower,
  }, function(d) {
 	$('#new_power').val("");
 	showStick(d.err, d.msg);
