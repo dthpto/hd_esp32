@@ -78,10 +78,6 @@ static void event_handler(void* arg, esp_event_base_t event_base,
 		ESP_LOGI(TAG, "gw: " IPSTR "\n", IP2STR(&event->ip_info.gw));
 		ESP_LOGI(TAG, "Initializing SNTP");
 
-		char tz[20];
-		snprintf(tz, 20, "CST-%d", getIntParam(NET_PARAMS, "timezone"));
-		setenv("TZ", tz, 1);
-		tzset();
 		sntp_setoperatingmode(SNTP_OPMODE_POLL);
 		sntp_setservername(0, "pool.ntp.org");
 		sntp_init();

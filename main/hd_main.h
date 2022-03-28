@@ -46,7 +46,7 @@ typedef enum {
 	ALARM_NOLOAD=0x10,		// Авария: отсутствие подключения нагрузки
 	ALARM_EXT   =0x20, 		// Авария от внешнего источника
 	ALARM_OVER_POWER= 0x40, // Авария: мощность превышает заданную
-	ALARM_NO_PWR_CONTROL	= 0x80 // Авария: отказ контроля мощности
+	ALARM_PZEM_ERR	= 0x80 // Авария: отказ контроля мощности
 } alarm_mode;
 
 typedef enum {
@@ -125,7 +125,7 @@ extern int16_t WaterFlow;	// Значения датчика потока вод
 #define DELTA_TRIAK_ALARM_PRC  5
 
 #define VALVE_DUTY 1023
-#define VALVE_ON_FADE_TIME_MS 1000
+#define VALVE_ON_FADE_TIME_MS 100
 #define KEEP_KLP_PWM 30  // процент ШИМ удержания
 #define KEEP_KLP_DELAY_MS 100  // задержка начала снижения ШИМ клапана после включения, мс
 
@@ -170,6 +170,9 @@ void setPower(int16_t pw);	// Установка рабочей мощности
 void setMainMode(int new_mode);	// Установка нового режима работы
 void setStatus(int next);	// Ручная установка состояния конечного автомата
 void setNewMainStatus(int16_t newStatus);
+
+void setTimezone(int gmt_offset);
+
 void closeAllKlp(void);		// Закрытие всех клапанов.
 void openKlp(int i);		// Открытие клапана воды
 void closeKlp(int i);		// Закрытие определенного клапана

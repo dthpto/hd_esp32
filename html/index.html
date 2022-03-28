@@ -735,7 +735,7 @@ EndProcess = function() {
 
 setPower = function(delta) {
  var newPower = eval($('#new_power').val()) + delta;
- if (newPower<0) newPower=0;
+ if ((newPower<0)||(delta==0)) newPower=0;
  $.post('/setpower', {
         'power': newPower,
  }, function(d) {

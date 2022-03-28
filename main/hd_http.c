@@ -454,6 +454,7 @@ int httpNetSetup(HttpdConnData *connData)
 		cJSON_AddItemToObject(ja, "smscPhones", cJSON_CreateString(getStringParam(NET_PARAMS, "smscPhones")));
 		cJSON_AddItemToObject(ja, "useSmsc", cJSON_CreateNumber(getIntParam(NET_PARAMS, "useSmsc")));
 		cJSON_AddItemToObject(ja, "wsPeriod", cJSON_CreateNumber(wsPeriod));
+		cJSON_AddItemToObject(ja, "timezone", cJSON_CreateNumber(getIntParam(NET_PARAMS, "timezone")));
 
 		char *r=cJSON_Print(ja);
 		httpdSend(connData, r, strlen(r));
@@ -475,6 +476,7 @@ int httpNetSetup(HttpdConnData *connData)
 		httpPassword = getStringParam(NET_PARAMS, "pass");
 		httpSecure = getIntParam(NET_PARAMS, "secure");
 		wsPeriod = getIntParam(NET_PARAMS, "wsPeriod");
+		setTimezone(getIntParam(NET_PARAMS, "timezone"));
 		json_ok(connData);
 	}
 	return HTTPD_CGI_DONE;

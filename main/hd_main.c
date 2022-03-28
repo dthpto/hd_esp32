@@ -307,7 +307,7 @@ void pzem_task(void *arg)
 {
 	TickType_t overPowerAlarmTime;
 	bool  flag_overPower=0;
-	bool  succ_flag;
+	bool  pzem_ok;
 
 	PZEM_init();
 
@@ -316,15 +316,15 @@ void pzem_task(void *arg)
 	while(1) {
 		vTaskDelay(1200/portTICK_PERIOD_MS);
 		// --------reading PZEM-----------
-		succ_flag = (readPZEM(&CurVolts,&CurPower) == ESP_OK);
+		pzem_ok = (readPZEM(&CurVolts,&CurPower) == ESP_OK);
 		//=========ALARMS CHECKS========
 		//---- PZEM connection--------
-		if (!succ_flag) { // no connection to PZEM, alarm!
-			SET_ALARM(ALARM_NO_PWR_CONTROL);
+		if (!pzem_ok) { // no connection to PZEM, alarm!
+			SET_ALARM(ALARM_PZEM_ERR);
 		}
 		else
 		{
-			CLEAR_ALARM(ALARM_NO_PWR_CONTROL);
+			CLEAR_ALARM(ALARM_PZEM_ERR);
 			//-------------- low voltage 220V----------
 			if (CurVolts<10)
 				SET_ALARM(ALARM_FREQ);
@@ -339,7 +339,8 @@ void pzem_task(void *arg)
 
 			//-------------- triac breakdown to a short circuit ----------
 			if (((CurPower- SetPower)*100L/getIntParam(DEFL_PARAMS, "maxPower"))>DELTA_TRIAK_ALARM_PRC){
-				myBeep(true);
+				ESP_LOGE(__func__,"triac breakdown times:%d",flag_overPower);
+				//myBeep(true);
 				if (!flag_overPower){  // first detection
 					overPowerAlarmTime = xTaskGetTickCount () + SEC_TO_TICKS(TRIAK_ALARM_DELAY_SEC);// memorize event time (by ticks)
 					flag_overPower = true;
@@ -356,7 +357,8 @@ void pzem_task(void *arg)
 			}
 		}
 
-		if (EXISTS_ALARM(ALARM_FREQ | ALARM_NOLOAD | ALARM_NO_PWR_CONTROL)){
+		if (EXISTS_ALARM(ALARM_FREQ | ALARM_NOLOAD | ALARM_PZEM_ERR)){
+			ESP_LOGI(__func__,"ALARM:%d",AlarmMode);
 			myBeep(false);
 		}
 
@@ -367,8 +369,8 @@ void pzem_task(void *arg)
 		}
 
 		//======
-		if ((SetPower <= 0) || EXISTS_ALARM(ALARM_FREQ | ALARM_NOLOAD | ALARM_NO_PWR_CONTROL)) {
-			//DBG("SetPower:%d  Alarm:%d",SetPower, AlarmMode);
+		if ((SetPower <= 0) || EXISTS_ALARM(ALARM_FREQ | ALARM_NOLOAD | ALARM_PZEM_ERR)) {
+			DBG("SetPower:%d  Alarm:%d",SetPower, AlarmMode);
 			Hpoint = HMAX;
 			continue;
 		}
@@ -378,7 +380,7 @@ void pzem_task(void *arg)
 		int errPercent = abs((errP*100 + SetPower/2)/SetPower);
 
 		if ((errP==0)||(errPercent==0)) { // precision is 1%
-			//DBG("STABLE cur:%d(%d) errPrc:%d Hpoint:%d",CurPower,SetPower,errPercent,Hpoint);
+			DBG("STABLE cur:%d(%d) errPrc:%d Hpoint:%d",CurPower,SetPower,errPercent,Hpoint);
 			continue;
 		}
 		int voltagePower = powerPrcByHpoint(Hpoint);
@@ -505,7 +507,7 @@ const char *getAlarmModeStr(void)
 		cnt = sizeof(str) - strlen(str);
 		strncat(str,"  ВЫСОКАЯ МОЩНОСТЬ !", cnt);
 	}
-	if (EXISTS_ALARM(ALARM_NO_PWR_CONTROL)) {
+	if (EXISTS_ALARM(ALARM_PZEM_ERR)) {
 		cnt = sizeof(str) - strlen(str);
 		strncat(str,"  Ошибка PZEM!", cnt);
 	}
@@ -1822,6 +1824,8 @@ void app_main(void)
 	httpSecure = getIntParam(NET_PARAMS, "secure");
 	wsPeriod = getIntParam(NET_PARAMS, "wsPeriod");
 
+	setTimezone(getIntParam(NET_PARAMS, "timezone"));
+
 	/* Настройка wifi */
 	wifiSetup();
 
@@ -1992,7 +1996,10 @@ void valveCMDtask(void *arg){
 	#endif
 					Klp[qcmd.valve_num].is_open = true;
 					// ---------логика снижения ШИМ клапана после его включения---------
-					if ((qcmd.valve_num == klp_water)||((qcmd.valve_num == klp_diff))) break; 	//если вода или дифф - не снижаем
+					if (((qcmd.valve_num == klp_water)&&(getIntParam(DEFL_PARAMS,"klp1_isPWM"))) //если на воде - насос управляемый PWM то не снижаем
+						||
+						 (qcmd.valve_num == klp_diff) // если это ключ выхода на дифф-автомат то не снижаем
+						) break;
 
 					if ((KEEP_KLP_PWM==0)||(KEEP_KLP_PWM==100)) break;								// если настройка ШИМ удержания 0 или 100 - не снижаем
 					if (	(Klp[qcmd.valve_num].is_pwm)																//если клапан в ШИМ
@@ -2031,4 +2038,11 @@ void valveCMDtask(void *arg){
 				break;
 		}
 	}
+}
+
+void setTimezone(int gmt_offset){
+	char tz[10];
+	snprintf(tz, 10, "CST-%d", gmt_offset);
+	setenv("TZ", tz, 1);
+	tzset();
 }

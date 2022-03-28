@@ -28,7 +28,7 @@ License (MIT license):
 
 #define TAG "hd_esp32"
 
-#define DEBUG				// debug mode
+//#define DEBUG				// debug mode
 
 #ifdef DEBUG
 #define DBGT( tag, format, ... ) ESP_LOGI(tag, format, ##__VA_ARGS__)
@@ -47,7 +47,7 @@ License (MIT license):
 #define DEFAULT_PASSWORD "12345"
 
 #define FIRMWARE_UPDATE_URL "http://hd.rus.net/"
-#define ESP32_VERSION "0.7.4"
+#define ESP32_VERSION "0.7.4.2"
 
 #define WiFiStateConnected      0
 #define WiFiStateWaitToConnect  1
