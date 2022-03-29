@@ -360,7 +360,7 @@ showStick = function(level,text) {
 <div >
 <input class="menu" type="button" value=" -100 " onclick="setPower(-100);" />
 <input class="menu" type="button" value=" -10 " onclick="setPower(-10);" />
-<input class="menu" type="button" value="   0   " onclick="setPower(0);" />
+<input class="menu" type="button" value="   0   " onclick="setPower(-1);" />
 <input class="menu" type="button" value=" +10 " onclick="setPower(10);" />
 <input class="menu" type="button" value=" +100 " onclick="setPower(100);" />
 </div>
@@ -448,7 +448,6 @@ showStick = function(level,text) {
 
 </div>
 
-
 <div class="pages" id="net_setup" style="display: none;">
 <h2>Настройки сети</h2>
 <table class="param"><tbody>
@@ -475,6 +474,8 @@ showStick = function(level,text) {
 <td class="ta_l" style="border-top: 2px solid;"> <input id="wsPeriod" type="text" size="3" maxlength="4"> Сек.</td></tr>
 <tr><td class="ta_r">Time zone (GMT 0-12):</td>
 <td class="ta_l"> <input id="timezone" type="text" size="2" maxlength="3"></td></tr>
+<tr><td class="ta_r">zero detector shift:</td>
+<td class="ta_l"> <input id="z_shift" type="number" size="3" maxlength="3"></td></tr>
 
 <tr><td class="ta_c" colspan="2"><input type="button" id="net_save_cfg" onclick="save_network();" value="Сохранить настройки" /></td></tr>
 <tr><td colspan="2" id="net_saveok" class="ta_c" style="font-weidth: bold; color:green; display: none;">New setting will be effective after restart.</td></tr>
@@ -615,11 +616,8 @@ showStick = function(level,text) {
 <input type="button" value="Вернутся" onclick="cancel_sens();"/>
 <input type="button" value="Сохранить" onclick="update_sens();"/>
 </td></tr>
-
 </tbody></table>
-
 </div>
-
 </div>
 
 <div class="pages" id="wifi_setup" style="display: none;">
@@ -735,7 +733,7 @@ EndProcess = function() {
 
 setPower = function(delta) {
  var newPower = eval($('#new_power').val()) + delta;
- if ((newPower<0)||(delta==0)) newPower=0;
+ if ((newPower<0)||(delta<0)) newPower=0;
  $.post('/setpower', {
         'power': newPower,
  }, function(d) {
@@ -902,7 +900,8 @@ save_network = function () {
 	'smscPhones': $('#smscPhones').val(),
 	'useSmsc':useSmsc,
 	'wsPeriod': $('#wsPeriod').val(),
-	'timezone': $('#timezone').val()
+	'timezone': $('#timezone').val(),
+	'z_shift': $('#z_shift').val()
    }, function(d) {
 	$('#net_saveok').show();
    }, 'json')
@@ -927,6 +926,7 @@ disp_network = function () {
 	else $('#useSmsc').removeAttr('checked');
 	$('#wsPeriod').val(d.wsPeriod);
 	$('#timezone').val(d.timezone);
+	$('#z_shift').val(d.z_shift);
 
 	$("#passmatch").hide();
 	$("#saveok").hide();
