@@ -885,6 +885,42 @@ void sendSMS(char *text)
 }
 
 
+// Отправка в телеграм сообщений
+void sendTG(char *text)
+{
+	request_t *req;
+	int ret;
+	char *post, *user, *hash, *phones;
+	int s;
+	if (!getIntParam(NET_PARAMS, "useSmsc")) return;
+
+	// пока будем использовать поле smscUser в качестве chat_id
+	user = getStringParam(NET_PARAMS, "smscUser");
+	hash = getStringParam(NET_PARAMS, "smscHash");
+	// а поле smscPhones в качестве адреса сервиса отправки сообщений в бота
+	phones = getStringParam(NET_PARAMS, "smscPhones");
+
+
+	if (!user || !phones) return;
+	if (strlen(user)<=0 || strlen(phones)<=0) return;
+	s = strlen(user) + strlen(hash) + strlen(phones) + strlen(text);
+	post = malloc(s+30);
+	if (!post) return;
+	sprintf(post, "%s/?chat_id=%s&message=%s", phones, user, text);
+
+	ESP_LOGI(TAG, ">> Telegram start");
+	req = req_new(post); 
+	ret = req_perform(req);
+	if (ret/100 > 2) {
+		ESP_LOGI(TAG, "telegram send failed, error code: %d", ret);
+	}
+	req_clean(req);
+	free(post);
+	ESP_LOGI(TAG, "<< Telegram Done");
+}
+
+
+
 // Установка рабочей мощности
 void setPower(int16_t pw)
 {
@@ -1460,7 +1496,8 @@ void Rectification(void)
 			closeAllKlp();		// Закрытие всех клапанов.
 			SecondsEnd = uptime_counter;
 			sprintf(b, "Rectification complete, time: %02d:%02d:%02d", uptime_counter/3600, (uptime_counter/60)%60, uptime_counter%60);
-			sendSMS(b);
+			// sendSMS(b);
+			sendTG(b);
         		setNewMainStatus(PROC_END);
 			if (getIntParam(DEFL_PARAMS, "beepChangeState")) myBeep(true);
 #ifdef DEBUG
@@ -1537,7 +1574,8 @@ void Distillation(void)
 		setPower(0);		// Снятие мощности с тэна
 		closeAllKlp();		// Закрытие всех клапанов.
 		sprintf(b, "Distillation complete, time: %02d:%02d:%02d", uptime_counter/3600, (uptime_counter/60)%60, uptime_counter%60);
-		sendSMS(b);
+		sendTG(b);
+		// sendSMS(b);
 		if (getIntParam(DEFL_PARAMS, "DIFFoffOnStop")) {
 			xTaskCreate(&diffOffTask, "diff Off task", 4096, NULL, 1, NULL); // выключаем дифф
 		}
@@ -1959,6 +1997,10 @@ void app_main(void)
 	}
 
 	if (getIntParam(DEFL_PARAMS, "beepChangeState")) myBeep(false);
+	char b[250];
+
+	sprintf(b, "Привет. Причина ребута: %s\n", getResetReasonStr());
+	sendTG(b);
 
 	while (true) {
 		cJSON *ja = getInformation();
@@ -1975,7 +2017,7 @@ void app_main(void)
 void valveCMDtask(void *arg){
 	valveCMDmessage_t qcmd;
 	ledc_channel_t ch;
-	TickType_t xLastWakeTime=0, prevValveSwitch=0;
+	TickType_t xLastWakeTime=0; //, prevValveSwitch=0;
 
 	while (1){
 		if (xQueueReceive(valve_cmd_queue, &qcmd, portMAX_DELAY)!=pdTRUE) // ждем события на открытие/закрытие клапана

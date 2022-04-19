@@ -36,13 +36,13 @@ extern bool WIFI_scanStarted;
 extern bool WIFI_scanComplete;
 extern wifi_ap_record_t *WIFI_scanResult;
 
-/* Получение сохраненной конфигурации WiFi точек */
+/* РџРѕР»СѓС‡РµРЅРёРµ СЃРѕС…СЂР°РЅРµРЅРЅРѕР№ РєРѕРЅС„РёРіСѓСЂР°С†РёРё WiFi С‚РѕС‡РµРє */
 int get_wifi_config(void);
 int wifi_cmd_ap_set(void);
 /* Start scan WiFi networks available */
 int8_t scanWifiNetworks(bool async, bool show_hidden, bool passive, uint32_t max_ms_per_chan);
 const char *wifi_auth_string(wifi_auth_mode_t auth);
-esp_err_t wifiSetup(void); // Настройка wifi
+esp_err_t wifiSetup(void); // РќР°СЃС‚СЂРѕР№РєР° wifi
 esp_netif_t *getNetHandle(void); // return current esp-netif instance
 #ifdef __cplusplus
 }

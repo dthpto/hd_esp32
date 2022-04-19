@@ -28,7 +28,7 @@ License (MIT license):
 #define TAG "hd_esp32"
 
 #define MAX_OBJ_NAME	32
-#define MAX_KLP		4		// Максимальное число клапанов = 4
+#define MAX_KLP		4		// РњР°РєСЃРёРјР°Р»СЊРЅРѕРµ С‡РёСЃР»Рѕ РєР»Р°РїР°РЅРѕРІ = 4
 
 #define CONFIG_REALM "ESP32"
 #define DEFAULT_HOST "hd_esp32"
@@ -77,7 +77,7 @@ License (MIT license):
 #define SPI_PIN_CS   22
 #define SPI_PIN_RST  25
 
-// Тип переменной
+// РўРёРї РїРµСЂРµРјРµРЅРЅРѕР№
 enum variable_type {
         VARIABLE_CHECKBOX,
         VARIABLE_STRING,
@@ -85,7 +85,7 @@ enum variable_type {
 		VARIABLE_FLOAT
 };
 
-// Определение переменной
+// РћРїСЂРµРґРµР»РµРЅРёРµ РїРµСЂРµРјРµРЅРЅРѕР№
 typedef struct  {
         char *name;
         enum variable_type type;
@@ -97,15 +97,15 @@ typedef struct  {
 //	float floatval;
 } vaiable_list;
 
-extern vaiable_list NET_PARAMS[];	// Сетевые параметры
-extern vaiable_list DEFL_PARAMS[];	// Пераметры устройства
+extern vaiable_list NET_PARAMS[];	// РЎРµС‚РµРІС‹Рµ РїР°СЂР°РјРµС‚СЂС‹
+extern vaiable_list DEFL_PARAMS[];	// РџРµСЂР°РјРµС‚СЂС‹ СѓСЃС‚СЂРѕР№СЃС‚РІР°
 
-int param_default(vaiable_list list[], const char *finename);	// Сброс параметров в значение по умолчанию
-int param_load(vaiable_list list[], const char *finename);	/* Загрузка и установка параметров работы */
-int param_save(vaiable_list list[], const char *finename);	/* Сохранение параметров работы */
-int checkParam(vaiable_list list[], char *name);	/* Проверка существования параметра */
-int setParam(vaiable_list list[], char *name, char *value); /* Установка  переменной */
-char *getStringParam(vaiable_list list[], char *name);	/* Получение текстовой переменной */
-int  getIntParam(vaiable_list list[], char *name);	/* Получение переменной типа int */
-float getFloatParam(vaiable_list list[], char *name);	/* Получение переменной типа float*/
+int param_default(vaiable_list list[], const char *finename);	// РЎР±СЂРѕСЃ РїР°СЂР°РјРµС‚СЂРѕРІ РІ Р·РЅР°С‡РµРЅРёРµ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ
+int param_load(vaiable_list list[], const char *finename);	/* Р—Р°РіСЂСѓР·РєР° Рё СѓСЃС‚Р°РЅРѕРІРєР° РїР°СЂР°РјРµС‚СЂРѕРІ СЂР°Р±РѕС‚С‹ */
+int param_save(vaiable_list list[], const char *finename);	/* РЎРѕС…СЂР°РЅРµРЅРёРµ РїР°СЂР°РјРµС‚СЂРѕРІ СЂР°Р±РѕС‚С‹ */
+int checkParam(vaiable_list list[], char *name);	/* РџСЂРѕРІРµСЂРєР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёСЏ РїР°СЂР°РјРµС‚СЂР° */
+int setParam(vaiable_list list[], char *name, char *value); /* РЈСЃС‚Р°РЅРѕРІРєР°  РїРµСЂРµРјРµРЅРЅРѕР№ */
+char *getStringParam(vaiable_list list[], char *name);	/* РџРѕР»СѓС‡РµРЅРёРµ С‚РµРєСЃС‚РѕРІРѕР№ РїРµСЂРµРјРµРЅРЅРѕР№ */
+int  getIntParam(vaiable_list list[], char *name);	/* РџРѕР»СѓС‡РµРЅРёРµ РїРµСЂРµРјРµРЅРЅРѕР№ С‚РёРїР° int */
+float getFloatParam(vaiable_list list[], char *name);	/* РџРѕР»СѓС‡РµРЅРёРµ РїРµСЂРµРјРµРЅРЅРѕР№ С‚РёРїР° float*/
 

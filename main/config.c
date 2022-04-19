@@ -34,7 +34,7 @@ License (MIT license):
 #include "esp_log.h"
 #include "config.h"
 
-/* Сетевые параметры */
+/* РЎРµС‚РµРІС‹Рµ РїР°СЂР°РјРµС‚СЂС‹ */
 vaiable_list NET_PARAMS[] =
 {
 	{"host",		VARIABLE_STRING, 0,	0,	DEFAULT_HOST,	NULL},
@@ -52,21 +52,21 @@ vaiable_list NET_PARAMS[] =
 };
 
 
-/* Параметры устройства */
+/* РџР°СЂР°РјРµС‚СЂС‹ СѓСЃС‚СЂРѕР№СЃС‚РІР° */
 vaiable_list DEFL_PARAMS[] =
 {
 	{"maxPower",		VARIABLE_INT,	0,	15000,	"2000",	NULL},
 	{"ustPowerReg",		VARIABLE_INT,	0,	15000,	"900",	NULL},
 	{"tempEndRectRazgon",	VARIABLE_FLOAT, 0,	120,	"83.0",	NULL},
 	{"powerRect",		VARIABLE_INT,	0,	15000,	"1000",	NULL},
-	{"tEndRectOtbGlv",	VARIABLE_FLOAT, -9999,	120,	"85.4",	NULL},   //отрицательное значение: время отбора голов в минутах
+	{"tEndRectOtbGlv",	VARIABLE_FLOAT, -9999,	120,	"85.4",	NULL},   //РѕС‚СЂРёС†Р°С‚РµР»СЊРЅРѕРµ Р·РЅР°С‡РµРЅРёРµ: РІСЂРµРјСЏ РѕС‚Р±РѕСЂР° РіРѕР»РѕРІ РІ РјРёРЅСѓС‚Р°С…
 	{"timeChimRectOtbGlv",	VARIABLE_INT,	0,	10000,	"20",	 NULL},
 	{"procChimOtbGlv",	VARIABLE_INT,	0,	101,	"5",	NULL},
 	{"minProcChimOtbSR",	VARIABLE_INT,	0,	101,	"20",	NULL},
 	{"beginProcChimOtbSR",	VARIABLE_INT,	0,	100,	"40",	NULL},
 	{"timeChimRectOtbSR",	VARIABLE_INT,	0,	1500,	"10",	NULL},
 	{"tempDeltaRect",	VARIABLE_FLOAT, 0,	120,	"0.3",	NULL},
-	{"tempEndRectOtbSR",	VARIABLE_FLOAT, -120,	120,	"96.5", NULL}, // отрицательное значение: ТTube20, положительное: T куба
+	{"tempEndRectOtbSR",	VARIABLE_FLOAT, -120,	120,	"96.5", NULL}, // РѕС‚СЂРёС†Р°С‚РµР»СЊРЅРѕРµ Р·РЅР°С‡РµРЅРёРµ: РўTube20, РїРѕР»РѕР¶РёС‚РµР»СЊРЅРѕРµ: T РєСѓР±Р°
 	{"tempEndRect",		VARIABLE_FLOAT, 0,	120,	"99.5", NULL},
 	{"p_MPX5010",		VARIABLE_INT,	0,	100,	"0",	NULL},
 	{"timeStabKolonna",	VARIABLE_INT,	0,	3500,	"900",	NULL},
@@ -87,16 +87,16 @@ vaiable_list DEFL_PARAMS[] =
 	{"klp1_isPWM", 		VARIABLE_CHECKBOX, 0,	1,	"0",	NULL},
 	{"pzemVersion", 	VARIABLE_INT,	0,	2,	"0",	NULL},
 	{"useExernalAlarm", 	VARIABLE_CHECKBOX, 0,	1,	"0",	NULL},
-	//------настройки группы безопасности
-	{"alarmDIFFoffT", 	VARIABLE_CHECKBOX, 0,	1,	"0",	NULL}, //Выключать дифф-автомат по тревоге Т
-	{"alarmDIFFoffP", 	VARIABLE_CHECKBOX, 0,	1,	"0",	NULL}, //Выключать дифф-автомат по превышению мощности
-	{"DIFFoffDelay", 	VARIABLE_INT,					0,	600,		  "30",		NULL},//задержка в секундах от момента аварии до выключения дифф-автомата
-	{"DIFFoffOnStart", 	VARIABLE_CHECKBOX, 0,	1,	"0",	NULL}, //Выключать дифф-автомат при старте
-	{"DIFFoffOnStop", 	VARIABLE_CHECKBOX, 0,	1,	"0",	NULL}, //Выключать дифф-автомат при завершении
+	//------РЅР°СЃС‚СЂРѕР№РєРё РіСЂСѓРїРїС‹ Р±РµР·РѕРїР°СЃРЅРѕСЃС‚Рё
+	{"alarmDIFFoffT", 	VARIABLE_CHECKBOX, 0,	1,	"0",	NULL}, //Р’С‹РєР»СЋС‡Р°С‚СЊ РґРёС„С„-Р°РІС‚РѕРјР°С‚ РїРѕ С‚СЂРµРІРѕРіРµ Рў
+	{"alarmDIFFoffP", 	VARIABLE_CHECKBOX, 0,	1,	"0",	NULL}, //Р’С‹РєР»СЋС‡Р°С‚СЊ РґРёС„С„-Р°РІС‚РѕРјР°С‚ РїРѕ РїСЂРµРІС‹С€РµРЅРёСЋ РјРѕС‰РЅРѕСЃС‚Рё
+	{"DIFFoffDelay", 	VARIABLE_INT,					0,	600,		  "30",		NULL},//Р·Р°РґРµСЂР¶РєР° РІ СЃРµРєСѓРЅРґР°С… РѕС‚ РјРѕРјРµРЅС‚Р° Р°РІР°СЂРёРё РґРѕ РІС‹РєР»СЋС‡РµРЅРёСЏ РґРёС„С„-Р°РІС‚РѕРјР°С‚Р°
+	{"DIFFoffOnStart", 	VARIABLE_CHECKBOX, 0,	1,	"0",	NULL}, //Р’С‹РєР»СЋС‡Р°С‚СЊ РґРёС„С„-Р°РІС‚РѕРјР°С‚ РїСЂРё СЃС‚Р°СЂС‚Рµ
+	{"DIFFoffOnStop", 	VARIABLE_CHECKBOX, 0,	1,	"0",	NULL}, //Р’С‹РєР»СЋС‡Р°С‚СЊ РґРёС„С„-Р°РІС‚РѕРјР°С‚ РїСЂРё Р·Р°РІРµСЂС€РµРЅРёРё
 	{NULL}
 };
 
-/* Сброс параметров в значение по умолчанию */
+/* РЎР±СЂРѕСЃ РїР°СЂР°РјРµС‚СЂРѕРІ РІ Р·РЅР°С‡РµРЅРёРµ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ */
 int param_default(vaiable_list list[], const char *finename)
 {
 	FILE *f = fopen(finename, "w");
@@ -135,7 +135,7 @@ int param_default(vaiable_list list[], const char *finename)
 	return 0;
 }
 
-/* Загрузка и установка параметров работы */
+/* Р—Р°РіСЂСѓР·РєР° Рё СѓСЃС‚Р°РЅРѕРІРєР° РїР°СЂР°РјРµС‚СЂРѕРІ СЂР°Р±РѕС‚С‹ */
 int param_load(vaiable_list list[], const char *finename)
 {
 	struct stat st;
@@ -149,7 +149,7 @@ int param_load(vaiable_list list[], const char *finename)
 	int save_param = 0;	// flag - save parameters
 
        	if (stat(finename, &st) != 0) {
-		// Файл не найден - заполняем значениями по умолчанию
+		// Р¤Р°Р№Р» РЅРµ РЅР°Р№РґРµРЅ - Р·Р°РїРѕР»РЅСЏРµРј Р·РЅР°С‡РµРЅРёСЏРјРё РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ
 		return param_default(list, finename);
 	}
 	f = fopen(finename, "r");
@@ -222,7 +222,7 @@ int param_load(vaiable_list list[], const char *finename)
 	return 0;
 }
 
-/* Сохранение параметров работы */
+/* РЎРѕС…СЂР°РЅРµРЅРёРµ РїР°СЂР°РјРµС‚СЂРѕРІ СЂР°Р±РѕС‚С‹ */
 int param_save(vaiable_list list[], const char *finename)
 {
 	vaiable_list *v;
@@ -247,7 +247,7 @@ int param_save(vaiable_list list[], const char *finename)
 	return 0;
 }
 
-/* Проверка существования параметра */
+/* РџСЂРѕРІРµСЂРєР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёСЏ РїР°СЂР°РјРµС‚СЂР° */
 int checkParam(vaiable_list list[], char *name)
 {
 	vaiable_list *v;
@@ -257,7 +257,7 @@ int checkParam(vaiable_list list[], char *name)
 	return 0;
 }
 
-/* Установка  переменной */
+/* РЈСЃС‚Р°РЅРѕРІРєР°  РїРµСЂРµРјРµРЅРЅРѕР№ */
 int setParam(vaiable_list list[], char *name, char *value)
 {
 	vaiable_list *v;
@@ -295,7 +295,7 @@ int setParam(vaiable_list list[], char *name, char *value)
 }
 
 
-/* Получение текстовой переменной */
+/* РџРѕР»СѓС‡РµРЅРёРµ С‚РµРєСЃС‚РѕРІРѕР№ РїРµСЂРµРјРµРЅРЅРѕР№ */
 char *getStringParam(vaiable_list list[], char *name)
 {
 	vaiable_list *v;
@@ -308,7 +308,7 @@ char *getStringParam(vaiable_list list[], char *name)
 	return "";
 }
 
-/* Получение переменной типа int */
+/* РџРѕР»СѓС‡РµРЅРёРµ РїРµСЂРµРјРµРЅРЅРѕР№ С‚РёРїР° int */
 int  getIntParam(vaiable_list list[], char *name)
 {
 	vaiable_list *v;
@@ -321,7 +321,7 @@ int  getIntParam(vaiable_list list[], char *name)
 	return 0;
 }
 
-/* Получение переменной типа float*/
+/* РџРѕР»СѓС‡РµРЅРёРµ РїРµСЂРµРјРµРЅРЅРѕР№ С‚РёРїР° float*/
 float getFloatParam(vaiable_list list[], char *name)
 {
 	vaiable_list *v;
