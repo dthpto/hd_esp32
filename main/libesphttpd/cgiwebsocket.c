@@ -294,14 +294,14 @@ int ICACHE_FLASH_ATTR cgiWebsocket(HttpdConnData *connData) {
 	}
 	
 	if (connData->cgiData==NULL) {
-//httpd_printf("WS: First call\n");
+		httpd_printf("WS: First call\n");
 		//First call here. Check if client headers are OK, send server header.
 		i=httpdGetHeader(connData, "Upgrade", buff, sizeof(buff)-1);
 		httpd_printf("WS: Upgrade: %s\n", buff);
 		if (i && strcasecmp(buff, "websocket")==0) {
 			i=httpdGetHeader(connData, "Sec-WebSocket-Key", buff, sizeof(buff)-1);
 			if (i) {
-//httpd_printf("WS: Key: %s\n", buff);
+			httpd_printf("WS: Key: %s\n", buff);
 				//Seems like a WebSocket connection.
 				// Alloc structs
 				connData->cgiData=malloc(sizeof(Websock));
@@ -344,8 +344,8 @@ int ICACHE_FLASH_ATTR cgiWebsocket(HttpdConnData *connData) {
 				ws->recvCb = connData->cgiArg;
 
 				//Inform CGI function we have a connection
-//				WsConnectedCb connCb=connData->cgiArg;
-//				connCb(ws);
+				WsConnectedCb connCb=connData->cgiArg;
+				connCb(ws);
 				//Insert ws into linked list
 				xSemaphoreTake(wsLock, portMAX_DELAY);
 				if (llStart==NULL) {
@@ -359,6 +359,7 @@ int ICACHE_FLASH_ATTR cgiWebsocket(HttpdConnData *connData) {
 				return HTTPD_CGI_MORE;
 			}
 		}
+		httpd_printf("No valid websocket connection");
 		//No valid websocket connection
 		httpdStartResponse(connData, 500);
 		httpdEndHeaders(connData);

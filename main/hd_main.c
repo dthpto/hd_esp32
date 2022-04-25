@@ -1781,9 +1781,7 @@ static void register_testmessage()
     ESP_ERROR_CHECK( esp_console_cmd_register(&cmd) );
 }
 
-
 /** 'restart' command restarts the program */
-
 static int restart(int argc, char **argv)
 {
 	ESP_LOGI(TAG, "Restarting");
@@ -1800,8 +1798,6 @@ static void register_restart()
 	};
 	ESP_ERROR_CHECK( esp_console_cmd_register(&cmd) );
 }
-
-
 
 void console_task(void *arg)
 {
