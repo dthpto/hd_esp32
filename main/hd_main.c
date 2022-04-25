@@ -363,7 +363,9 @@ void pzem_task(void *arg)
 
 		if (EXISTS_ALARM(ALARM_FREQ | ALARM_NOLOAD | ALARM_PZEM_ERR)){
 			ESP_LOGI(__func__,"ALARM:%d",AlarmMode);
-			sendTG(getAlarmModeStr());
+			char b[200];
+			sprintf(b, "!!! АВАРИЯ: %s", getAlarmModeStr());
+			sendTG(b);
 			myBeep(false);
 		}
 
