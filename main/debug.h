@@ -1,7 +1,7 @@
 /*
  * debug.h
  *
- *  Created on: 9 ìàð. 2022 ã.
+ *  Created on: 9 ˜˜˜. 2022 ˜.
  *      Author: Vladimir Loskutnikov
  *
  * Unless required by applicable law or agreed to in writing, this

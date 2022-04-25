@@ -890,33 +890,39 @@ void sendTG(char *text)
 {
 	request_t *req;
 	int ret;
-	char *post, *user, *hash, *phones;
+	// char *post, *user, *phones;
+	char *post, *chatid, *address;
 	int s;
 	if (!getIntParam(NET_PARAMS, "useSmsc")) return;
 
 	// пока будем использовать поле smscUser в качестве chat_id
-	user = getStringParam(NET_PARAMS, "smscUser");
-	hash = getStringParam(NET_PARAMS, "smscHash");
+	chatid = getStringParam(NET_PARAMS, "smscUser");
 	// а поле smscPhones в качестве адреса сервиса отправки сообщений в бота
-	phones = getStringParam(NET_PARAMS, "smscPhones");
+	address = getStringParam(NET_PARAMS, "smscPhones");
 
-
-	if (!user || !phones) return;
-	if (strlen(user)<=0 || strlen(phones)<=0) return;
-	s = strlen(user) + strlen(hash) + strlen(phones) + strlen(text);
-	post = malloc(s+30);
+	if (!chatid || !address) return;
+	if (strlen(chatid)<=0 || strlen(address)<=0) return;
+	s = strlen(chatid) + strlen(text);
+	post = malloc(s+50);
 	if (!post) return;
-	sprintf(post, "%s/?chat_id=%s&message=%s", phones, user, text);
 
-	ESP_LOGI(TAG, ">> Telegram start");
-	req = req_new(post); 
+	sprintf(post, "chat_id=%s&message=%s", chatid, text);
+
+	ESP_LOGI(TAG, ">> Telegram start %s", post);
+	char adr[strlen(address + 10)];
+	sprintf(adr, "http://%s/", address);
+
+	req = req_new(adr); 
+	req_setopt(req, REQ_SET_METHOD, "POST");
+	req_setopt(req, REQ_SET_POSTFIELDS, post);
 	ret = req_perform(req);
 	if (ret/100 > 2) {
 		ESP_LOGI(TAG, "telegram send failed, error code: %d", ret);
 	}
 	req_clean(req);
-	free(post);
-	ESP_LOGI(TAG, "<< Telegram Done");
+	//free(post);
+	//free(adr);
+	ESP_LOGI(TAG, "<< Telegram Done %d", ret);
 }
 
 
@@ -979,6 +985,9 @@ void setNewMainStatus(int16_t newStatus)
 	if (nvsHandle) {
 		nvs_set_i16(nvsHandle, "MainStatus", MainStatus);
 	}
+	char b[255];
+	sprintf(b, "%s: %s", getMainModeStr(), getMainStatusStr());
+	sendTG(b);
 }
 
 
@@ -1023,6 +1032,7 @@ void setMainMode(int nm)
 	}
 	DBG("4");
 	myBeep(false);
+	//sendTG(getMainModeStr());
 }
 
 // Ручная установка состояния конечного автомата
@@ -1495,10 +1505,10 @@ void Rectification(void)
 			setPower(0);		// Снятие мощности с тэна
 			closeAllKlp();		// Закрытие всех клапанов.
 			SecondsEnd = uptime_counter;
-			sprintf(b, "Rectification complete, time: %02d:%02d:%02d", uptime_counter/3600, (uptime_counter/60)%60, uptime_counter%60);
+			sprintf(b, "Ректификация завершена, время: %02d:%02d:%02d", uptime_counter/3600, (uptime_counter/60)%60, uptime_counter%60);
 			// sendSMS(b);
 			sendTG(b);
-        		setNewMainStatus(PROC_END);
+        	setNewMainStatus(PROC_END);
 			if (getIntParam(DEFL_PARAMS, "beepChangeState")) myBeep(true);
 #ifdef DEBUG
 			ESP_LOGI(TAG, "%s", b);
@@ -1511,6 +1521,7 @@ void Rectification(void)
 		if (getIntParam(DEFL_PARAMS, "DIFFoffOnStop")) {
 			xTaskCreate(&diffOffTask, "diff Off task", 4096, NULL, 1, NULL); // выключаем дифф
 		}
+		setMainMode(MODE_IDLE);
 		break;
 	}
 }
@@ -1519,7 +1530,7 @@ void Rectification(void)
 void Distillation(void)
 {
 	double t;
-	char b[80];
+	char b[200];
 
 	switch (MainStatus) {
 	case START_WAIT:
@@ -1573,12 +1584,13 @@ void Distillation(void)
 		// Окончание работы
 		setPower(0);		// Снятие мощности с тэна
 		closeAllKlp();		// Закрытие всех клапанов.
-		sprintf(b, "Distillation complete, time: %02d:%02d:%02d", uptime_counter/3600, (uptime_counter/60)%60, uptime_counter%60);
+		sprintf(b, "Дистилляция окончена, время: %02d:%02d:%02d", uptime_counter/3600, (uptime_counter/60)%60, uptime_counter%60);
 		sendTG(b);
 		// sendSMS(b);
 		if (getIntParam(DEFL_PARAMS, "DIFFoffOnStop")) {
 			xTaskCreate(&diffOffTask, "diff Off task", 4096, NULL, 1, NULL); // выключаем дифф
 		}
+		setMainMode(MODE_IDLE);
 		break;
 	}
 }
@@ -1723,6 +1735,55 @@ static void register_version()
     ESP_ERROR_CHECK( esp_console_cmd_register(&cmd) );
 }
 
+/* 'testmessage' command */
+static int testmessage(int argc, char **argv)
+{
+	ESP_LOGI(TAG, "Test message to Telegram\n");
+	int ret;
+	request_t *req;
+	
+	char *post, *chatid, *address;
+	
+	
+	// пока будем использовать поле smscUser в качестве chat_id
+	chatid = getStringParam(NET_PARAMS, "smscUser");
+
+	// а поле smscPhones в качестве адреса сервиса отправки сообщений в бота
+	address = getStringParam(NET_PARAMS, "smscPhones");
+	int postlen;
+	postlen = strlen(chatid) + 50;
+
+	post = malloc(postlen);
+ 	printf("Chat id: %s, address: %s\n", chatid, address);
+	sprintf(post, "chat_id=%s&message=Test message", chatid);
+
+	ESP_LOGD(TAG, "Post data: %s", post);
+	
+	char adr[strlen(address + 10)];
+	sprintf(adr, "http://%s/", address);
+
+	req = req_new(adr); 
+	req_setopt(req, REQ_SET_METHOD, "POST");
+	req_setopt(req, REQ_SET_POSTFIELDS, post);
+	ret = req_perform(req);
+	req_clean(req);
+	if(!ret) ESP_LOGE(TAG, "Error send TG message\n");
+	else ESP_LOGI(TAG, "Done!");
+	return 0;
+}
+
+static void register_testmessage()
+{
+	    const esp_console_cmd_t cmd = {
+        .command = "testmessage",
+        .help = "Send test message to telegram.",
+        .hint = NULL,
+        .func = &testmessage,
+    };
+    ESP_ERROR_CHECK( esp_console_cmd_register(&cmd) );
+}
+
+
 /** 'restart' command restarts the program */
 
 static int restart(int argc, char **argv)
@@ -1784,6 +1845,7 @@ void console_task(void *arg)
 	set_args.end = arg_end(2);
 	ESP_ERROR_CHECK( esp_console_cmd_register(&set_ct_cmd) );
 	register_version();
+	register_testmessage();
 	register_restart();
 
 	while (true) {
@@ -1997,11 +2059,8 @@ void app_main(void)
 	}
 
 	if (getIntParam(DEFL_PARAMS, "beepChangeState")) myBeep(false);
-	char b[250];
-
-	sprintf(b, "Привет. Причина ребута: %s\n", getResetReasonStr());
-	sendTG(b);
-
+	//vTaskDelay(3000);
+	//sendTG("Power on!");
 	while (true) {
 		cJSON *ja = getInformation();
      		char *r=cJSON_Print(ja);
