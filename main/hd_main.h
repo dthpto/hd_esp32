@@ -166,6 +166,7 @@ const char *getResetReasonStr(void); // Получение строки о пр�
 cJSON* getInformation(void);
 
 void sendSMS(char *text);	// Отправка SMS
+void sendTG(char * text);	// Отправка сообщений в телеграм
 void Rectification(void);	// Обработка состояний в режиме ректификации
 void setPower(int16_t pw);	// Установка рабочей мощности
 void setMainMode(int new_mode);	// Установка нового режима работы

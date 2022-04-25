@@ -363,6 +363,7 @@ void pzem_task(void *arg)
 
 		if (EXISTS_ALARM(ALARM_FREQ | ALARM_NOLOAD | ALARM_PZEM_ERR)){
 			ESP_LOGI(__func__,"ALARM:%d",AlarmMode);
+			sendTG(getAlarmModeStr());
 			myBeep(false);
 		}
 
@@ -487,7 +488,7 @@ const char *getAlarmModeStr(void)
 	int cnt;
 
 	if (!AlarmMode) return "<b class=\"green\">Не зафиксированo</b>";
-	strcpy(str, "<b class=\"red\">");
+	strcpy(str, "<b style='color: red'>");
 
 	if (EXISTS_ALARM(ALARM_TEMP)) {
 		cnt = sizeof(str) - strlen(str);
@@ -503,19 +504,19 @@ const char *getAlarmModeStr(void)
 	}
 	if (EXISTS_ALARM(ALARM_NOLOAD)) {
 		cnt = sizeof(str) - strlen(str);
-		strncat(str,"  Нет нагрузки", cnt);
+		strncat(str," Нет нагрузки", cnt);
 	}
 	if (EXISTS_ALARM(ALARM_EXT)) {
 		cnt = sizeof(str) - strlen(str);
-		strncat(str,"  аварийный датчик", cnt);
+		strncat(str," аварийный датчик", cnt);
 	}
 	if (EXISTS_ALARM(ALARM_OVER_POWER)) {
 		cnt = sizeof(str) - strlen(str);
-		strncat(str,"  ВЫСОКАЯ МОЩНОСТЬ !", cnt);
+		strncat(str," ВЫСОКАЯ МОЩНОСТЬ !", cnt);
 	}
 	if (EXISTS_ALARM(ALARM_PZEM_ERR)) {
 		cnt = sizeof(str) - strlen(str);
-		strncat(str,"  Ошибка PZEM!", cnt);
+		strncat(str," Ошибка PZEM!", cnt);
 	}
 	strcat(str,"</b>");
 	return str;
@@ -884,7 +885,6 @@ void sendSMS(char *text)
 	ESP_LOGI(TAG, "<< Sms Done");
 }
 
-
 // Отправка в телеграм сообщений
 void sendTG(char *text)
 {
@@ -924,8 +924,6 @@ void sendTG(char *text)
 	//free(adr);
 	ESP_LOGI(TAG, "<< Telegram Done %d", ret);
 }
-
-
 
 // Установка рабочей мощности
 void setPower(int16_t pw)
