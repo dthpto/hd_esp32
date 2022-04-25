@@ -168,9 +168,10 @@ int ICACHE_FLASH_ATTR cgiWebSocketRecv(HttpdConnData *connData, char *data, int 
 	int i, j, sl;
 	int r=HTTPD_CGI_MORE;
 	int wasHeaderByte;
+	httpd_printf("WS data: %s\n", data);
 	Websock *ws=(Websock*)connData->cgiData;
 	for (i=0; i<len; i++) {
-//		httpd_printf("Ws: State %d byte 0x%02X\n", ws->priv->wsStatus, data[i]);
+		httpd_printf("Ws: State %d byte 0x%02X\n", ws->priv->wsStatus, data[i]);
 		wasHeaderByte=1;
 		if (ws->priv->wsStatus==ST_FLAGS) {
 			ws->priv->maskCtr=0;
@@ -294,14 +295,14 @@ int ICACHE_FLASH_ATTR cgiWebsocket(HttpdConnData *connData) {
 	}
 	
 	if (connData->cgiData==NULL) {
-		httpd_printf("WS: First call\n");
+//httpd_printf("WS: First call\n");
 		//First call here. Check if client headers are OK, send server header.
 		i=httpdGetHeader(connData, "Upgrade", buff, sizeof(buff)-1);
 		httpd_printf("WS: Upgrade: %s\n", buff);
 		if (i && strcasecmp(buff, "websocket")==0) {
 			i=httpdGetHeader(connData, "Sec-WebSocket-Key", buff, sizeof(buff)-1);
 			if (i) {
-			httpd_printf("WS: Key: %s\n", buff);
+//httpd_printf("WS: Key: %s\n", buff);
 				//Seems like a WebSocket connection.
 				// Alloc structs
 				connData->cgiData=malloc(sizeof(Websock));
@@ -322,6 +323,7 @@ int ICACHE_FLASH_ATTR cgiWebsocket(HttpdConnData *connData) {
 				ws->conn=connData;
 				//Reply with the right headers.
 				strcat(buff, WS_GUID);
+				// httpd_printf("WS: GUID: %s\n", buff);
 
 				sha1_init(&s);
 				sha1_write(&s, buff, strlen(buff));
@@ -333,6 +335,8 @@ int ICACHE_FLASH_ATTR cgiWebsocket(HttpdConnData *connData) {
 				httpdHeader(connData, "Sec-WebSocket-Accept", buff);
 
 				i=httpdGetHeader(connData, "Sec-WebSocket-Protocol", buff, sizeof(buff)-1);
+				httpd_printf("WS: Protocol: %s\n", buff);
+				// httpd_printf("i: %d\n", i);
 				if (i) {
 					httpdHeader(connData, "Sec-WebSocket-Protocol", buff);
 				}
@@ -344,8 +348,8 @@ int ICACHE_FLASH_ATTR cgiWebsocket(HttpdConnData *connData) {
 				ws->recvCb = connData->cgiArg;
 
 				//Inform CGI function we have a connection
-				WsConnectedCb connCb=connData->cgiArg;
-				connCb(ws);
+//				WsConnectedCb connCb=connData->cgiArg;
+//				connCb(ws);
 				//Insert ws into linked list
 				xSemaphoreTake(wsLock, portMAX_DELAY);
 				if (llStart==NULL) {
