@@ -1297,7 +1297,7 @@ void Rectification(void)
 
 				// Рассогласование температуры запоминаем
 				// температуру и время
-		                setTempStabSR(t);
+		        setTempStabSR(t);
 				setTempTube20Prev(t);
 				secTempPrev = uptime_counter;
 				break;
@@ -2072,7 +2072,7 @@ void app_main(void)
 void valveCMDtask(void *arg){
 	valveCMDmessage_t qcmd;
 	ledc_channel_t ch;
-	TickType_t xLastWakeTime=0; //, prevValveSwitch=0;
+	TickType_t xLastWakeTime=0; // , prevValveSwitch=0; // comment by dth: unused var
 
 	while (1){
 		if (xQueueReceive(valve_cmd_queue, &qcmd, portMAX_DELAY)!=pdTRUE) // ждем события на открытие/закрытие клапана

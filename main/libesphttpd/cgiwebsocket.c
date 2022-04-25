@@ -168,10 +168,9 @@ int ICACHE_FLASH_ATTR cgiWebSocketRecv(HttpdConnData *connData, char *data, int 
 	int i, j, sl;
 	int r=HTTPD_CGI_MORE;
 	int wasHeaderByte;
-	httpd_printf("WS data: %s\n", data);
 	Websock *ws=(Websock*)connData->cgiData;
 	for (i=0; i<len; i++) {
-		httpd_printf("Ws: State %d byte 0x%02X\n", ws->priv->wsStatus, data[i]);
+//		httpd_printf("Ws: State %d byte 0x%02X\n", ws->priv->wsStatus, data[i]);
 		wasHeaderByte=1;
 		if (ws->priv->wsStatus==ST_FLAGS) {
 			ws->priv->maskCtr=0;
@@ -323,7 +322,6 @@ int ICACHE_FLASH_ATTR cgiWebsocket(HttpdConnData *connData) {
 				ws->conn=connData;
 				//Reply with the right headers.
 				strcat(buff, WS_GUID);
-				// httpd_printf("WS: GUID: %s\n", buff);
 
 				sha1_init(&s);
 				sha1_write(&s, buff, strlen(buff));
@@ -335,8 +333,6 @@ int ICACHE_FLASH_ATTR cgiWebsocket(HttpdConnData *connData) {
 				httpdHeader(connData, "Sec-WebSocket-Accept", buff);
 
 				i=httpdGetHeader(connData, "Sec-WebSocket-Protocol", buff, sizeof(buff)-1);
-				httpd_printf("WS: Protocol: %s\n", buff);
-				// httpd_printf("i: %d\n", i);
 				if (i) {
 					httpdHeader(connData, "Sec-WebSocket-Protocol", buff);
 				}
@@ -363,7 +359,6 @@ int ICACHE_FLASH_ATTR cgiWebsocket(HttpdConnData *connData) {
 				return HTTPD_CGI_MORE;
 			}
 		}
-		httpd_printf("No valid websocket connection");
 		//No valid websocket connection
 		httpdStartResponse(connData, 500);
 		httpdEndHeaders(connData);
