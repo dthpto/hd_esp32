@@ -97,6 +97,7 @@ klp_list Klp[MAX_KLP];		// Список клапанов.
 xQueueHandle valve_cmd_queue; // очередь команд клапанов
 void valveCMDtask(void *arg);
 void cmd2valve (int valve_num, valve_cmd_t cmd);
+void sendInformationTask(void *arg);
 
 /* Время */
 time_t CurrentTime;
@@ -2096,6 +2097,9 @@ void app_main(void)
 		ESP_ERROR_CHECK(gpio_intr_enable(GPIO_ALARM));
 	}
 
+	// задача отправки данных на хост раз в минуту
+	xTaskCreate(&sendInformationTask, "sendInformationTask", 4096, NULL, 1, NULL);
+
 	if (getIntParam(DEFL_PARAMS, "beepChangeState")) myBeep(false);
 	while (true) {
 		cJSON *ja = getInformation();
@@ -2188,4 +2192,12 @@ void setTimezone(int gmt_offset){
 	snprintf(tz, 10, "CST-%d", gmt_offset);
 	setenv("TZ", tz, 1);
 	tzset();
+}
+
+void sendInformationTask(void *arg)
+{
+	while(1){
+		vTaskDelay(60000/portTICK_PERIOD_MS);
+		sendInformation();
+	}
 }
