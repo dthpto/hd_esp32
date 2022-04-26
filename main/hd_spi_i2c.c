@@ -447,6 +447,7 @@ uint8_t I2C_Init(i2c_port_t _num, uint8_t _sda, uint8_t _scl) {
 	conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
 	conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
 	conf.master.clk_speed = I2C_MASTER_FREQ_HZ;
+	conf.clk_flags = 0;
 	i2c_param_config(i2c_num, &conf);
 
 	i2c_driver_install(i2c_num, conf.mode,
