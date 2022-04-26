@@ -892,6 +892,8 @@ void sendInformation()
 {
 	if (!getIntParam(NET_PARAMS, "useTG")) return;
 	cJSON *ja = getInformation();
+	cJSON_AddItemToObject(ja, "chat_id", cJSON_CreateString(getStringParam(NET_PARAMS, "TGchatid")));
+	cJSON_AddItemToObject(ja, "host", cJSON_CreateString(getStringParam(NET_PARAMS, "host")));
 	char *r=cJSON_Print(ja);
 	request_t *req;
 	char *post, *address, *url;
