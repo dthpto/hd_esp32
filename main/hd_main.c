@@ -887,6 +887,36 @@ void sendSMS(char *text)
 	ESP_LOGI(TAG, "<< Sms Done");
 }
 
+void sendInformation()
+{
+	if (!getIntParam(NET_PARAMS, "useTG")) return;
+	cJSON *ja = getInformation();
+	char *r=cJSON_Print(ja);
+	request_t *req;
+	char *post, *address, *url;
+	address = getStringParam(NET_PARAMS, "TGaddr");
+	int ret;
+	post = malloc(strlen(r)+50);
+	if(!post || !r) return;
+	sprintf(post, "json=%s", r);
+	
+	// ESP_LOGI(TAG, "JSON Data: %s\n", post);
+	url = malloc(strlen(address) + 25);
+	sprintf(url, "http://%s/receive.php", address);
+	req = req_new(url); 
+	req_setopt(req, REQ_SET_METHOD, "POST");
+	req_setopt(req, REQ_SET_POSTFIELDS, post);
+	ret = req_perform(req);
+	if (ret/100 > 2) {
+		ESP_LOGI(TAG, "Info send failed, error code: %d", ret);
+	}
+	free(r);
+	free(post);
+	free(url);
+	req_clean(req);
+	cJSON_Delete(ja);
+}
+
 // Отправка в телеграм сообщений
 void sendTG(char *text)
 {
@@ -907,7 +937,7 @@ void sendTG(char *text)
 	sprintf(post, "chat_id=%s&message=%s", chatid, text);
 
 	ESP_LOGI(TAG, ">> Telegram start %s", post);
-	char adr[strlen(address + 10)];
+	char adr[strlen(address) + 10];
 	sprintf(adr, "http://%s/", address);
 
 	req = req_new(adr); 
@@ -918,8 +948,7 @@ void sendTG(char *text)
 		ESP_LOGI(TAG, "telegram send failed, error code: %d", ret);
 	}
 	req_clean(req);
-	//free(post);
-	//free(adr);
+	free(post);
 	ESP_LOGI(TAG, "<< Telegram Done %d", ret);
 }
 
@@ -1731,6 +1760,25 @@ static void register_version()
     ESP_ERROR_CHECK( esp_console_cmd_register(&cmd) );
 }
 
+static int testinfo(int argc, char **argv)
+{
+	ESP_LOGI(TAG, "Test info to service\n");
+	sendInformation();
+	ESP_LOGI(TAG, "Test info send done!\n");
+	return 0;
+}
+
+static void register_testinfo()
+{
+	    const esp_console_cmd_t cmd = {
+        .command = "testinfo",
+        .help = "Send info to bot.",
+        .hint = NULL,
+        .func = &testinfo,
+    };
+    ESP_ERROR_CHECK( esp_console_cmd_register(&cmd) );
+}
+
 /* 'testmessage' command */
 static int testmessage(int argc, char **argv)
 {
@@ -1761,6 +1809,7 @@ static int testmessage(int argc, char **argv)
 	req_clean(req);
 	if(!ret) ESP_LOGE(TAG, "Error send TG message\n");
 	else ESP_LOGI(TAG, "Done!");
+	free(post);
 	return 0;
 }
 
@@ -1834,6 +1883,7 @@ void console_task(void *arg)
 	ESP_ERROR_CHECK( esp_console_cmd_register(&set_ct_cmd) );
 	register_version();
 	register_testmessage();
+	register_testinfo();
 	register_restart();
 
 	while (true) {
@@ -2047,8 +2097,6 @@ void app_main(void)
 	}
 
 	if (getIntParam(DEFL_PARAMS, "beepChangeState")) myBeep(false);
-	//vTaskDelay(3000);
-	//sendTG("Power on!");
 	while (true) {
 		cJSON *ja = getInformation();
      		char *r=cJSON_Print(ja);
