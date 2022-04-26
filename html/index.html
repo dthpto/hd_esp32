@@ -469,6 +469,12 @@ showStick = function(level,text) {
 <td class="ta_l"> <input id="smscHash" type="text" size="80" maxlength="80"></td></tr>
 <tr><td class="ta_r">Телефоны для отправки sms:</td>
 <td class="ta_l"> <input id="smscPhones" type="text" size="80" maxlength="80"></td></tr>
+<tr><td class="ta_r" style="border-top: 2px solid;">Отправка статусов в Telegram:</td>
+<td class="ta_l"> <input type="checkbox" id="useTG" value="1"></td></tr>
+<tr><td class="ta_r">Telegram chat_id:</td>
+<td class="ta_l"> <input id="TGchatid" type="text" size="20" maxlength="20"></td></tr>
+<tr><td class="ta_r">Адрес сервиса telegram:</td>
+<td class="ta_l"> <input id="TGaddr" type="text" size="20" maxlength="50" placeholder="bot.domain.com"></td></tr>
 <tr><td class="ta_r" style="border-top: 2px solid;">Период обновления для websocket:</td>
 <td class="ta_l" style="border-top: 2px solid;"> <input id="wsPeriod" type="text" size="3" maxlength="4"> Сек.</td></tr>
 <tr><td class="ta_r">Time zone (GMT 0-12):</td>
@@ -886,9 +892,10 @@ disp_main = function() {
 }
 
 save_network = function () {
-  var secure=0, useSmsc=0;
+  var secure=0, useSmsc=0, useTG=0;
   if($('#secure').is(':checked')) secure=1;
   if($('#useSmsc').is(':checked')) useSmsc=1;
+  if($('#useTG').is(':checked')) useTG=1;
   $.post('/netcfg', {
 	'host': $('#host').val(),
 	'user': $('#newusername').val(),
@@ -898,6 +905,9 @@ save_network = function () {
 	'smscHash': $('#smscHash').val(),
 	'smscPhones': $('#smscPhones').val(),
 	'useSmsc':useSmsc,
+	'useTG':useTG,
+	'TGchatid': $('#TGchatid').val(),
+	'TGaddr': $('#TGaddr').val(),
 	'wsPeriod': $('#wsPeriod').val(),
 	'timezone': $('#timezone').val(),
 	'z_shift': $('#z_shift').val()
@@ -923,6 +933,10 @@ disp_network = function () {
 	$('#smscPhones').val(d.smscPhones);
 	if (eval(d.useSmsc)) $('#useSmsc').prop('checked', 1);
 	else $('#useSmsc').removeAttr('checked');
+	if (eval(d.useTG)) $('#useTG').prop('checked', 1);
+	else $('#useTG').removeAttr('checked');
+	$('#TGchatid').val(d.TGchatid);
+	$('#TGaddr').val(d.TGaddr);
 	$('#wsPeriod').val(d.wsPeriod);
 	$('#timezone').val(d.timezone);
 	$('#z_shift').val(d.z_shift);

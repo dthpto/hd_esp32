@@ -435,7 +435,7 @@ int httpIndex(HttpdConnData *connData)
 	return HTTPD_CGI_DONE;
 }
 
-/* Âûäà÷à/ñîõðàíåíèå ñåòåâûõ ïàðàìåòðâ */
+/* Ð’Ñ‹Ð´Ð°Ñ‡Ð°/ÑÐ¾Ñ…Ñ€Ð°Ð½ÐµÐ½Ð¸Ðµ ÑÐµÑ‚ÐµÐ²Ñ‹Ñ… Ð¿Ð°Ñ€Ð°Ð¼ÐµÑ‚Ñ€Ð² */
 int httpNetSetup(HttpdConnData *connData)
 {
 	if (connData->conn==NULL) return HTTPD_CGI_DONE;
@@ -453,6 +453,9 @@ int httpNetSetup(HttpdConnData *connData)
 		cJSON_AddItemToObject(ja, "smscHash", cJSON_CreateString(getStringParam(NET_PARAMS, "smscHash")));
 		cJSON_AddItemToObject(ja, "smscPhones", cJSON_CreateString(getStringParam(NET_PARAMS, "smscPhones")));
 		cJSON_AddItemToObject(ja, "useSmsc", cJSON_CreateNumber(getIntParam(NET_PARAMS, "useSmsc")));
+		cJSON_AddItemToObject(ja, "useTG", cJSON_CreateNumber(getIntParam(NET_PARAMS, "useTG")));
+		cJSON_AddItemToObject(ja, "TGchatid", cJSON_CreateString(getStringParam(NET_PARAMS, "TGchatid")));
+		cJSON_AddItemToObject(ja, "TGaddr", cJSON_CreateString(getStringParam(NET_PARAMS, "TGaddr")));
 		cJSON_AddItemToObject(ja, "wsPeriod", cJSON_CreateNumber(wsPeriod));
 		cJSON_AddItemToObject(ja, "timezone", cJSON_CreateNumber(getIntParam(NET_PARAMS, "timezone")));
 		cJSON_AddItemToObject(ja, "z_shift", cJSON_CreateNumber(getIntParam(NET_PARAMS, "z_shift")));
@@ -485,7 +488,7 @@ int httpNetSetup(HttpdConnData *connData)
 }
 
 
-/* Ñáðîñ ïàðàìåòðîâ â çíà÷åíèå ïî óìîë÷àíèþ */
+/* Ð¡Ð±Ñ€Ð¾Ñ Ð¿Ð°Ñ€Ð°Ð¼ÐµÑ‚Ñ€Ð¾Ð² Ð² Ð·Ð½Ð°Ñ‡ÐµÐ½Ð¸Ðµ Ð¿Ð¾ ÑƒÐ¼Ð¾Ð»Ñ‡Ð°Ð½Ð¸ÑŽ */
 int httpParamDefault(HttpdConnData *connData)
 {
 	if (connData->conn==NULL) return HTTPD_CGI_DONE;

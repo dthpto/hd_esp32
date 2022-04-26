@@ -1231,6 +1231,7 @@ void ds_task(void *arg)
 				AlarmMode |= ALARM_TEMP;
 				if (!(SavedAlarmMode|ALARM_TEMP)) {
 					sendSMS("Temperature alarm! power switched off!");
+					sendTG("Temperature alarm! power switched off!");
 				}
 			} else {
 				AlarmMode &= ~(ALARM_TEMP);

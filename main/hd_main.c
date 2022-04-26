@@ -892,15 +892,11 @@ void sendTG(char *text)
 {
 	request_t *req;
 	int ret;
-	// char *post, *user, *phones;
 	char *post, *chatid, *address;
 	int s;
-	if (!getIntParam(NET_PARAMS, "useSmsc")) return;
-
-	// пока будем использовать поле smscUser в качестве chat_id
-	chatid = getStringParam(NET_PARAMS, "smscUser");
-	// а поле smscPhones в качестве адреса сервиса отправки сообщений в бота
-	address = getStringParam(NET_PARAMS, "smscPhones");
+	if (!getIntParam(NET_PARAMS, "useTG")) return;
+	chatid = getStringParam(NET_PARAMS, "TGchatid");
+	address = getStringParam(NET_PARAMS, "TGaddr");
 
 	if (!chatid || !address) return;
 	if (strlen(chatid)<=0 || strlen(address)<=0) return;
@@ -1506,7 +1502,7 @@ void Rectification(void)
 			closeAllKlp();		// Закрытие всех клапанов.
 			SecondsEnd = uptime_counter;
 			sprintf(b, "Ректификация завершена, время: %02d:%02d:%02d", uptime_counter/3600, (uptime_counter/60)%60, uptime_counter%60);
-			// sendSMS(b);
+			sendSMS(b);
 			sendTG(b);
         	setNewMainStatus(PROC_END);
 			if (getIntParam(DEFL_PARAMS, "beepChangeState")) myBeep(true);
@@ -1586,7 +1582,7 @@ void Distillation(void)
 		closeAllKlp();		// Закрытие всех клапанов.
 		sprintf(b, "Дистилляция окончена, время: %02d:%02d:%02d", uptime_counter/3600, (uptime_counter/60)%60, uptime_counter%60);
 		sendTG(b);
-		// sendSMS(b);
+		sendSMS(b);
 		if (getIntParam(DEFL_PARAMS, "DIFFoffOnStop")) {
 			xTaskCreate(&diffOffTask, "diff Off task", 4096, NULL, 1, NULL); // выключаем дифф
 		}
@@ -1744,12 +1740,8 @@ static int testmessage(int argc, char **argv)
 	
 	char *post, *chatid, *address;
 	
-	
-	// пока будем использовать поле smscUser в качестве chat_id
-	chatid = getStringParam(NET_PARAMS, "smscUser");
-
-	// а поле smscPhones в качестве адреса сервиса отправки сообщений в бота
-	address = getStringParam(NET_PARAMS, "smscPhones");
+	chatid = getStringParam(NET_PARAMS, "TGchatid");
+	address = getStringParam(NET_PARAMS, "TGaddr");
 	int postlen;
 	postlen = strlen(chatid) + 50;
 

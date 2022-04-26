@@ -41,13 +41,16 @@ vaiable_list NET_PARAMS[] =
 	{"user",		VARIABLE_STRING, 0,	0,	DEFAULT_USERNAME,NULL},
 	{"pass",		VARIABLE_STRING, 0,	0,	DEFAULT_PASSWORD,NULL},
 	{"secure",		VARIABLE_INT,	 0,	2,	"0",		NULL},
-	{"smscUser",		VARIABLE_STRING, 0,	0,	"",		NULL},
-	{"smscHash",		VARIABLE_STRING, 0,	0,	"",		NULL},
-	{"smscPhones",		VARIABLE_STRING, 0,	0,	"",		NULL},
-	{"useSmsc", 		VARIABLE_INT,	 0,	2,      "0",		NULL},
-	{"wsPeriod", 		VARIABLE_INT,	 0, 	60,	"5",		NULL},
-	{"timezone", 		VARIABLE_INT,	 -12,  12,	"3",		NULL},
-	{"z_shift", 		VARIABLE_INT,	 0,  300,	"55",		NULL},
+	{"useTG", 		VARIABLE_INT,	 0,	2,  "0",		NULL},
+	{"TGchatid",	VARIABLE_STRING, 0,	0,	"",		NULL},
+	{"TGaddr",		VARIABLE_STRING, 0,	0,	"",		NULL},
+	{"smscUser",	VARIABLE_STRING, 0,	0,	"",		NULL},
+	{"smscHash",	VARIABLE_STRING, 0,	0,	"",		NULL},
+	{"smscPhones",	VARIABLE_STRING, 0,	0,	"",		NULL},
+	{"useSmsc", 	VARIABLE_INT,	 0,	2,      "0",		NULL},
+	{"wsPeriod", 	VARIABLE_INT,	 0, 	60,	"5",		NULL},
+	{"timezone", 	VARIABLE_INT,	 -12,  12,	"3",		NULL},
+	{"z_shift", 	VARIABLE_INT,	 0,  300,	"55",		NULL},
 	{NULL}
 };
 
