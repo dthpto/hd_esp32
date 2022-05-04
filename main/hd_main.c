@@ -1014,7 +1014,7 @@ void setNewMainStatus(int16_t newStatus)
 		nvs_set_i16(nvsHandle, "MainStatus", MainStatus);
 	}
 	char b[255];
-	sprintf(b, "%s: %s", getMainModeStr(), getMainStatusStr());
+	sprintf(b, "%d|%d|%s: %s", MainMode, MainStatus, getMainModeStr(), getMainStatusStr());
 	sendTG(b);
 }
 
